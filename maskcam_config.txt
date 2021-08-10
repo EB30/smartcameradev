@@ -1,0 +1,143 @@
+
+# NOTE: Some values might be overriden via ENV vars (check maskcam/config.py)
+
+[face-processor]
+# Detections with score below this threshold will be discarded
+detection-threshold=0.1
+# Only vote mask/no_mask when detection score is above this
+voting-threshold=0.75
+# Smaller detections (in pixels) will be discarded
+min-face-size=8
+
+# Disable tracker to draw raw detections and set thresholds above
+disable-tracker=0
+
+[mqtt]
+# These are just placeholders, to enable MQTT define these env variables:
+# MQTT_BROKER_IP and MQTT_DEVICE_NAME
+mqtt-broker-ip=0
+mqtt-device-name=0
+
+mqtt-broker-port=1883
+mqtt-device-description=MaskCam @ Jetson Nano
+
+[maskcam]
+# Alert conditions
+# Minimum people to even calculate no-mask-fraction
+alert-min-visible-people=1
+# More than this fraction of people without mask will raise an alarm
+alert-no-mask-fraction=0.25
+# More than this people detected will raise alarm despite no-mask-fraction
+alert-max-total-people=10
+
+# Time to send statistics in seconds. Set smaller than fileserver-video-period
+statistics-period=15
+
+# Time (in seconds) to restart statistics (and the whole Deepstream inference process)
+# Set to 0 to disable / 24hs = 86400 seconds
+timeout-inference-restart=86400
+inference-log-interval=300
+
+# Other valid inputs:
+#  - CSI cameras like RaspiCam:
+#    -> argus://0
+#  - Any file:
+#    -> file:///absolute/path/to/file.mp4
+default-input=v4l2:///dev/video0
+
+# Output/streaming video resolution. 1024x576 keeps 4k aspect ratio of 1.777
+output-video-width=1024
+output-video-height=576
+
+# Run utils/gst_capabilities.sh and find video/x-raw entries
+camera-framerate=30
+
+# Only used for argus:// inputs
+camera-flip-method=0
+
+# Auto-calculate nvinfer's `interval` based on `camera-framerate` and `inference-max-fps`
+# to avoid delaying the pipeline. This will override the fixed `interval` parameter below
+# E.g: if framerate=30 and max-fps=14,
+#      -> will set interval=2 so that inference runs only 1/3 of incoming frames
+inference-interval-auto=1
+# Set this value to the actual FPS bottleneck of the model. Only used if inference-interval-auto.
+# e.g: run the model on a video file (instead of live camera source) to determine model's FPS on your device
+inference-max-fps=14
+
+udp-port-streaming=5400
+# 2 ports for overlapping file-save processes
+udp-ports-filesave=5401,5402
+
+streaming-start-default=1
+streaming-port=8554
+streaming-path=/maskcam
+streaming-clock-rate=90000
+# Supported: MP4, H264, H265
+# Recommended H264 for stability on video save
+codec=H264
+
+# Sequentially saving videos
+fileserver-enabled=1
+fileserver-port=8080
+fileserver-video-period=30
+fileserver-video-duration=35
+fileserver-force-save=0
+fileserver-ram-dir=/dev/shm
+# Use /tmp/* to clean saved videos on system reboot
+fileserver-hdd-dir=/tmp/saved_videos
+
+# IP or domain address that this device will show in info messages (logs and web frontend, for streaming and file downloading)
+# Recommended: use env variable MASKCAM_DEVICE_ADDRESS to set this
+device-address=0
+
+[property]
+interval=0
+gpu-id=0
+# Was: 
+net-scale-factor=0.0039215697906911373
+#0=RGB, 1=BGR
+model-color-format=0
+
+# YOLOv4
+# model-engine-file=yolo/facemask_y4tiny_1024_608_fp16.trt
+# model-engine-file=yolo/maskcam_y4t_1184_672_fp16.trt
+# model-engine-file=yolo/maskcam_y4t_1120_640_fp16.trt
+model-engine-file=yolo/maskcam_y4t_1024_608_fp16.trt
+labelfile-path=yolo/data/obj.names
+custom-lib-path=deepstream_plugin_yolov4/libnvdsinfer_custom_impl_Yolo.so
+
+# Detectnet_v2
+# tlt-encoded-model=detectnet_v2/resnet18_detector.etlt
+# tlt-model-key=tlt_encode
+# labelfile-path=detectnet_v2/labels.txt
+# input-dims=3;544;960;0 # where c = number of channels, h = height of the model input, w = width of model input, 0: implies CHW format.
+# uff-input-blob-name=input_1
+# output-blob-names=output_cov/Sigmoid;output_bbox/BiasAdd
+
+num-detected-classes=4
+
+## 0=FP32, 1=INT8, 2=FP16 mode
+network-mode=2
+gie-unique-id=1
+network-type=0
+# is-classifier=0
+## 0=Group Rectangles, 1=DBSCAN, 2=NMS, 3= DBSCAN+NMS Hybrid, 4 = None(No clustering)
+# Default: 2
+cluster-mode=2
+# Skip inference these frames
+maintain-aspect-ratio=0
+parse-bbox-func-name=NvDsInferParseCustomYoloV4
+engine-create-func-name=NvDsInferYoloCudaEngineGet
+scaling-filter=1
+scaling-compute-hw=1
+#output-blob-names=2012
+
+# Async mode doesn't make sense with our custom python tracker
+classifier-async-mode=0
+
+
+[class-attrs-all]
+nms-iou-threshold=0.2
+
+# Default: 0.4
+pre-cluster-threshold=0.4
